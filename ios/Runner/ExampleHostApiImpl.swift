@@ -17,6 +17,11 @@ class ExampleHostApiImpl: ExampleHostApi {
            let controller = window?.rootViewController as? UIViewController
         {
             print(resolvedURL)
+
+            ShopifyCheckoutSheetKit.configure {
+                $0.logLevel = .all
+            }
+
             presentedViewController = ShopifyCheckoutSheetKit.present(checkout: resolvedURL, from: controller, delegate: self)
         }
     }
