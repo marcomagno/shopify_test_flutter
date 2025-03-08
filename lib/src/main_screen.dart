@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -131,6 +132,7 @@ mutation storefrontCustomerAccessTokenCreate {
       customerAccessToken = result.data!['storefrontCustomerAccessTokenCreate']['customerAccessToken'];
     }
 
+    log("storefrontCustomerAccessTokenCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
     log("Customer Access Token => $customerAccessToken");
 
     mutation = r'''
@@ -208,7 +210,10 @@ mutation createCart($cartInput: CartInput) {
       variables: variables,
     );
 
+    log("cartCreate variables => ${jsonEncode(variables)}");
+
     result = await client.mutate(options);
+    log("cartCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
     if (result.hasException) {
       print(result.exception.toString());
     } else {
