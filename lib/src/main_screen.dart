@@ -91,7 +91,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _createCart() async {
     final httpLink = HttpLink(
       Constants.gqlEndpoint,
-      httpClient: OAuthClient.instance.client!,
+      httpClient: OAuthClient.instance.httpClient!,
       defaultHeaders: {
         "X-Shopify-Storefront-Access-Token": Constants.storefrontAccessToken,
       },

@@ -1,3 +1,4 @@
+import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_shopify_test/src/main_screen.dart';
 
@@ -6,8 +7,9 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: MainScreen(),
+    return MaterialApp(
+      navigatorObservers: [ChuckerFlutter.navigatorObserver],
+      home: const MainScreen(),
     );
   }
 }

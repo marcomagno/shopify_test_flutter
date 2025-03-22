@@ -1,6 +1,8 @@
 import 'dart:developer';
 
+import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter_shopify_test/src/constants.dart';
+import 'package:http/http.dart' as http;
 // import 'package:key_value_store/key_value_store.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
@@ -25,10 +27,11 @@ class OAuthClient {
   final Iterable<String> scopes;
   // final TannicoKeyValueStore keyValueStore;
 
-  oauth2.Client? _client;
+  http.BaseClient? _httpClient;
+  oauth2.Client? _oauthClient;
   static const keyValueStoreCredentialsKey = "OAuthClient.oauth_credentials";
 
-  oauth2.Client? get client => _client;
+  http.BaseClient? get httpClient => _httpClient;
 
   /// Singleton instance
   static final instance = OAuthClient._(
@@ -51,8 +54,10 @@ class OAuthClient {
     }
 
     final credentials = oauth2.Credentials.fromJson(credentialsJson);
-    _client = oauth2.Client(credentials, identifier: credentials.idToken, secret: credentials.accessToken);
-    log("Client restored: $_client");
+    _oauthClient = oauth2.Client(credentials, identifier: credentials.idToken, secret: credentials.accessToken);
+    _httpClient = ChuckerHttpClient(_oauthClient!);
+
+    log("Client restored: $_oauthClient");
   }
 
   Future<void> login({required Future<Uri?> Function(Uri uri) onRedirect}) async {
@@ -63,11 +68,12 @@ class OAuthClient {
     //   "prompt": "none",
     // });
     final responseUrl = await onRedirect(authorizationUrl);
-    _client = responseUrl != null ? await grant.handleAuthorizationResponse(responseUrl.queryParameters) : null;
-    log("New client created: $_client");
+    _oauthClient = responseUrl != null ? await grant.handleAuthorizationResponse(responseUrl.queryParameters) : null;
+    _httpClient = ChuckerHttpClient(_oauthClient!);
+    log("New client created: $_oauthClient");
 
     // await keyValueStore.set(keyValueStoreCredentialsKey, _client?.credentials.toJson());
-    if (_client?.credentials.toJson() case final jsonString?) {
+    if (_oauthClient?.credentials.toJson() case final jsonString?) {
       final sharedPrefs = await SharedPreferences.getInstance();
       await sharedPrefs.setString(keyValueStoreCredentialsKey, jsonString);
     }
@@ -77,16 +83,17 @@ class OAuthClient {
     final uri = logoutEndpoint.replace(
       queryParameters: {
         ...logoutEndpoint.queryParameters,
-        if (_client?.credentials.idToken != null) "id_token_hint": _client?.credentials.idToken,
+        if (_oauthClient?.credentials.idToken != null) "id_token_hint": _oauthClient?.credentials.idToken,
       },
     );
     onRedirect(uri);
-    _client = null;
+    _httpClient = null;
+    _oauthClient = null;
 
     // await keyValueStore.set(keyValueStoreCredentialsKey, null);
     final sharedPrefs = await SharedPreferences.getInstance();
     await sharedPrefs.remove(keyValueStoreCredentialsKey);
   }
 
-  Credentials? get credentials => _client?.credentials;
+  Credentials? get credentials => _oauthClient?.credentials;
 }
