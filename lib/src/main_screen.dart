@@ -7,6 +7,7 @@ import 'package:flutter_shopify_test/src/constants.dart';
 import 'package:flutter_shopify_test/src/logout_webview.dart';
 import 'package:flutter_shopify_test/src/pigeon.dart';
 import 'package:flutter_shopify_test/src/redirect_webview.dart';
+import 'package:flutter_shopify_test/src/service_locator.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
 class MainScreen extends StatefulWidget {
@@ -91,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _createCart() async {
     final httpLink = HttpLink(
       Constants.gqlEndpoint,
-      httpClient: OAuthClient.instance.httpClient!,
+      httpClient: ServiceLocator.instance.httpClient,
       defaultHeaders: {
         "X-Shopify-Storefront-Access-Token": Constants.storefrontAccessToken,
       },
@@ -101,41 +102,9 @@ class _MainScreenState extends State<MainScreen> {
       cache: GraphQLCache(store: InMemoryStore()),
     );
 
-    final authHttpLink = HttpLink(Constants.gqlAuthEndpoint, defaultHeaders: {
-      "Authorization": OAuthClient.instance.credentials?.accessToken ?? "",
-    });
-    final authClient = GraphQLClient(
-      link: authHttpLink,
-      cache: GraphQLCache(store: InMemoryStore()),
-    );
+    final customerAccessToken = await _customerAccessToken();
 
     var mutation = r'''
-mutation storefrontCustomerAccessTokenCreate {
-        storefrontCustomerAccessTokenCreate {
-          userErrors {
-            message
-            field
-          }
-          customerAccessToken
-        }
-      }
-''';
-    var options = MutationOptions(
-      document: gql(mutation),
-    );
-
-    var customerAccessToken = "";
-    var result = await authClient.mutate(options);
-    if (result.hasException) {
-      print(result.exception.toString());
-    } else {
-      customerAccessToken = result.data!['storefrontCustomerAccessTokenCreate']['customerAccessToken'];
-    }
-
-    log("storefrontCustomerAccessTokenCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
-    log("Customer Access Token => $customerAccessToken");
-
-    mutation = r'''
 mutation createCart($cartInput: CartInput) {
   cartCreate(input: $cartInput) {
     userErrors {
@@ -205,14 +174,14 @@ mutation createCart($cartInput: CartInput) {
         }
       },
     };
-    options = MutationOptions(
+    var options = MutationOptions(
       document: gql(mutation),
       variables: variables,
     );
 
     log("cartCreate variables => ${jsonEncode(variables)}");
 
-    result = await client.mutate(options);
+    var result = await client.mutate(options);
     log("cartCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
     if (result.hasException) {
       print(result.exception.toString());
@@ -227,5 +196,47 @@ mutation createCart($cartInput: CartInput) {
 
   Future<void> _checkout() async {
     await ExampleHostApi().presentCheckout(_checkoutUrlToPresent());
+  }
+
+  Future<String> _customerAccessToken() async {
+    final httpLink = HttpLink(
+      Constants.gqlAuthEndpoint,
+      httpClient: ServiceLocator.instance.httpClient,
+      defaultHeaders: {
+        "Authorization": OAuthClient.instance.credentials?.accessToken ?? "",
+      },
+    );
+    final client = GraphQLClient(
+      link: httpLink,
+      cache: GraphQLCache(store: InMemoryStore()),
+    );
+
+    var mutation = r'''
+mutation storefrontCustomerAccessTokenCreate {
+        storefrontCustomerAccessTokenCreate {
+          userErrors {
+            message
+            field
+          }
+          customerAccessToken
+        }
+      }
+''';
+    var options = MutationOptions(
+      document: gql(mutation),
+    );
+
+    var customerAccessToken = "";
+    var result = await client.mutate(options);
+    if (result.hasException) {
+      print(result.exception.toString());
+    } else {
+      customerAccessToken = result.data!['storefrontCustomerAccessTokenCreate']['customerAccessToken'];
+    }
+
+    log("storefrontCustomerAccessTokenCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
+    log("Customer Access Token => $customerAccessToken");
+
+    return customerAccessToken;
   }
 }
