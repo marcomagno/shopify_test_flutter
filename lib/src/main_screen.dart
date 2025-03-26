@@ -102,7 +102,8 @@ class _MainScreenState extends State<MainScreen> {
       cache: GraphQLCache(store: InMemoryStore()),
     );
 
-    final customerAccessToken = await _customerAccessToken();
+    // final customerAccessToken = await _customerAccessToken();
+    final customerAccessToken = OAuthClient.instance.credentials?.accessToken;
 
     var mutation = r'''
 mutation createCart($cartInput: CartInput) {
@@ -198,45 +199,45 @@ mutation createCart($cartInput: CartInput) {
     await ExampleHostApi().presentCheckout(_checkoutUrlToPresent());
   }
 
-  Future<String> _customerAccessToken() async {
-    final httpLink = HttpLink(
-      Constants.gqlAuthEndpoint,
-      httpClient: ServiceLocator.instance.httpClient,
-      defaultHeaders: {
-        "Authorization": OAuthClient.instance.credentials?.accessToken ?? "",
-      },
-    );
-    final client = GraphQLClient(
-      link: httpLink,
-      cache: GraphQLCache(store: InMemoryStore()),
-    );
+//   Future<String> _customerAccessToken() async {
+//     final httpLink = HttpLink(
+//       Constants.gqlAuthEndpoint,
+//       httpClient: ServiceLocator.instance.httpClient,
+//       defaultHeaders: {
+//         "Authorization": OAuthClient.instance.credentials?.accessToken ?? "",
+//       },
+//     );
+//     final client = GraphQLClient(
+//       link: httpLink,
+//       cache: GraphQLCache(store: InMemoryStore()),
+//     );
 
-    var mutation = r'''
-mutation storefrontCustomerAccessTokenCreate {
-        storefrontCustomerAccessTokenCreate {
-          userErrors {
-            message
-            field
-          }
-          customerAccessToken
-        }
-      }
-''';
-    var options = MutationOptions(
-      document: gql(mutation),
-    );
+//     var mutation = r'''
+// mutation storefrontCustomerAccessTokenCreate {
+//         storefrontCustomerAccessTokenCreate {
+//           userErrors {
+//             message
+//             field
+//           }
+//           customerAccessToken
+//         }
+//       }
+// ''';
+//     var options = MutationOptions(
+//       document: gql(mutation),
+//     );
 
-    var customerAccessToken = "";
-    var result = await client.mutate(options);
-    if (result.hasException) {
-      print(result.exception.toString());
-    } else {
-      customerAccessToken = result.data!['storefrontCustomerAccessTokenCreate']['customerAccessToken'];
-    }
+//     var customerAccessToken = "";
+//     var result = await client.mutate(options);
+//     if (result.hasException) {
+//       print(result.exception.toString());
+//     } else {
+//       customerAccessToken = result.data!['storefrontCustomerAccessTokenCreate']['customerAccessToken'];
+//     }
 
-    log("storefrontCustomerAccessTokenCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
-    log("Customer Access Token => $customerAccessToken");
+//     log("storefrontCustomerAccessTokenCreate response headers => ${result.context.entry<HttpLinkResponseContext>()?.rawHeaders}");
+//     log("Customer Access Token => $customerAccessToken");
 
-    return customerAccessToken;
-  }
+//     return customerAccessToken;
+//   }
 }
